@@ -108,29 +108,33 @@ impl Sniffer {
         let ip_packet = Ipv4Packet::new(&bytes[payload_offset..])?;
         let version = ip_packet.get_version();
 
+        let ethernet_frame_length = bytes.len();
         match version {
-            4 => Self::handle_v4(ip_packet, &self.network_interface),
+            4 => Self::handle_v4(ip_packet, &self.network_interface, &ethernet_frame_length),
             6 => Self::handle_v6(
                 Ipv6Packet::new(&bytes[payload_offset..])?,
                 &self.network_interface,
+                &ethernet_frame_length
             ),
             _ => {
                 let pkg = EthernetPacket::new(bytes)?;
                 match pkg.get_ethertype() {
                     EtherTypes::Ipv4 => {
-                        Self::handle_v4(Ipv4Packet::new(pkg.payload())?, &self.network_interface)
+                        Self::handle_v4(Ipv4Packet::new(pkg.payload())?, &self.network_interface, &ethernet_frame_length)
                     }
                     EtherTypes::Ipv6 => {
-                        Self::handle_v6(Ipv6Packet::new(pkg.payload())?, &self.network_interface)
+                        Self::handle_v6(Ipv6Packet::new(pkg.payload())?, &self.network_interface, &ethernet_frame_length)
                     }
                     _ => None,
                 }
             }
         }
     }
-    fn handle_v6(ip_packet: Ipv6Packet, network_interface: &NetworkInterface) -> Option<Segment> {
+    fn handle_v6(ip_packet: Ipv6Packet, network_interface: &NetworkInterface, ethernet_frame_length: &usize) -> Option<Segment> {
         let (protocol, source_port, destination_port, data_length) =
             extract_transport_protocol!(ip_packet);
+
+        let data_length = *ethernet_frame_length as u128;
 
         let interface_name = network_interface.name.clone();
         let direction = Direction::new(&network_interface.ips, ip_packet.get_source().into());
@@ -148,9 +152,11 @@ impl Sniffer {
             direction,
         })
     }
-    fn handle_v4(ip_packet: Ipv4Packet, network_interface: &NetworkInterface) -> Option<Segment> {
+    fn handle_v4(ip_packet: Ipv4Packet, network_interface: &NetworkInterface, ethernet_frame_length: &usize) -> Option<Segment> {
         let (protocol, source_port, destination_port, data_length) =
             extract_transport_protocol!(ip_packet);
+
+        let data_length = *ethernet_frame_length as u128;
 
         let interface_name = network_interface.name.clone();
         let direction = Direction::new(&network_interface.ips, ip_packet.get_source().into());
