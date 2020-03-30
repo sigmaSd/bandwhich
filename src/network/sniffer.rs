@@ -16,9 +16,9 @@ use crate::network::{Connection, Protocol};
 
 #[derive(Debug)]
 pub struct Segment {
-    pub interface_name: String,
-    pub connection: Connection,
-    pub direction: Direction,
+//    pub interface_name: String,
+//    pub connection: Connection,
+//    pub direction: Direction,
     pub data_length: u128,
 }
 
@@ -94,84 +94,85 @@ impl Sniffer {
     }
     pub fn next(&mut self) -> Option<Segment> {
         let bytes = self.network_frames.next().ok()?;
+        Some(Segment { data_length: bytes.len() as u128 })
         // See https://github.com/libpnet/libpnet/blob/master/examples/packetdump.rs
         // VPN interfaces (such as utun0, utun1, etc) have POINT_TO_POINT bit set to 1
-        let payload_offset = if (self.network_interface.is_loopback()
-            || self.network_interface.is_point_to_point())
-            && cfg!(target_os = "macos")
-        {
-            // The pnet code for BPF loopback adds a zero'd out Ethernet header
-            14
-        } else {
-            0
-        };
-        let ip_packet = Ipv4Packet::new(&bytes[payload_offset..])?;
-        let version = ip_packet.get_version();
-
-        let ethernet_frame_length = bytes.len();
-        match version {
-            4 => Self::handle_v4(ip_packet, &self.network_interface, &ethernet_frame_length),
-            6 => Self::handle_v6(
-                Ipv6Packet::new(&bytes[payload_offset..])?,
-                &self.network_interface,
-                &ethernet_frame_length
-            ),
-            _ => {
-                let pkg = EthernetPacket::new(bytes)?;
-                match pkg.get_ethertype() {
-                    EtherTypes::Ipv4 => {
-                        Self::handle_v4(Ipv4Packet::new(pkg.payload())?, &self.network_interface, &ethernet_frame_length)
-                    }
-                    EtherTypes::Ipv6 => {
-                        Self::handle_v6(Ipv6Packet::new(pkg.payload())?, &self.network_interface, &ethernet_frame_length)
-                    }
-                    _ => None,
-                }
-            }
-        }
+//        let payload_offset = if (self.network_interface.is_loopback()
+//            || self.network_interface.is_point_to_point())
+//            && cfg!(target_os = "macos")
+//        {
+//            // The pnet code for BPF loopback adds a zero'd out Ethernet header
+//            14
+//        } else {
+//            0
+//        };
+//        let ip_packet = Ipv4Packet::new(&bytes[payload_offset..])?;
+//        let version = ip_packet.get_version();
+//
+//        let ethernet_frame_length = bytes.len();
+//        match version {
+//            4 => Self::handle_v4(ip_packet, &self.network_interface, &ethernet_frame_length),
+//            6 => Self::handle_v6(
+//                Ipv6Packet::new(&bytes[payload_offset..])?,
+//                &self.network_interface,
+//                &ethernet_frame_length
+//            ),
+//            _ => {
+//                let pkg = EthernetPacket::new(bytes)?;
+//                match pkg.get_ethertype() {
+//                    EtherTypes::Ipv4 => {
+//                        Self::handle_v4(Ipv4Packet::new(pkg.payload())?, &self.network_interface, &ethernet_frame_length)
+//                    }
+//                    EtherTypes::Ipv6 => {
+//                        Self::handle_v6(Ipv6Packet::new(pkg.payload())?, &self.network_interface, &ethernet_frame_length)
+//                    }
+//                    _ => None,
+//                }
+//            }
+//        }
     }
-    fn handle_v6(ip_packet: Ipv6Packet, network_interface: &NetworkInterface, ethernet_frame_length: &usize) -> Option<Segment> {
-        let (protocol, source_port, destination_port, data_length) =
-            extract_transport_protocol!(ip_packet);
-
-        let data_length = *ethernet_frame_length as u128;
-
-        let interface_name = network_interface.name.clone();
-        let direction = Direction::new(&network_interface.ips, ip_packet.get_source().into());
-        let from = SocketAddr::new(ip_packet.get_source().into(), source_port);
-        let to = SocketAddr::new(ip_packet.get_destination().into(), destination_port);
-
-        let connection = match direction {
-            Direction::Download => Connection::new(from, to.ip(), destination_port, protocol),
-            Direction::Upload => Connection::new(to, from.ip(), source_port, protocol),
-        };
-        Some(Segment {
-            interface_name,
-            connection,
-            data_length,
-            direction,
-        })
-    }
-    fn handle_v4(ip_packet: Ipv4Packet, network_interface: &NetworkInterface, ethernet_frame_length: &usize) -> Option<Segment> {
-        let (protocol, source_port, destination_port, data_length) =
-            extract_transport_protocol!(ip_packet);
-
-        let data_length = *ethernet_frame_length as u128;
-
-        let interface_name = network_interface.name.clone();
-        let direction = Direction::new(&network_interface.ips, ip_packet.get_source().into());
-        let from = SocketAddr::new(ip_packet.get_source().into(), source_port);
-        let to = SocketAddr::new(ip_packet.get_destination().into(), destination_port);
-
-        let connection = match direction {
-            Direction::Download => Connection::new(from, to.ip(), destination_port, protocol),
-            Direction::Upload => Connection::new(to, from.ip(), source_port, protocol),
-        };
-        Some(Segment {
-            interface_name,
-            connection,
-            data_length,
-            direction,
-        })
-    }
+//    fn handle_v6(ip_packet: Ipv6Packet, network_interface: &NetworkInterface, ethernet_frame_length: &usize) -> Option<Segment> {
+//        let (protocol, source_port, destination_port, data_length) =
+//            extract_transport_protocol!(ip_packet);
+//
+//        let data_length = *ethernet_frame_length as u128;
+//
+//        let interface_name = network_interface.name.clone();
+//        let direction = Direction::new(&network_interface.ips, ip_packet.get_source().into());
+//        let from = SocketAddr::new(ip_packet.get_source().into(), source_port);
+//        let to = SocketAddr::new(ip_packet.get_destination().into(), destination_port);
+//
+//        let connection = match direction {
+//            Direction::Download => Connection::new(from, to.ip(), destination_port, protocol),
+//            Direction::Upload => Connection::new(to, from.ip(), source_port, protocol),
+//        };
+//        Some(Segment {
+//            interface_name,
+//            connection,
+//            data_length,
+//            direction,
+//        })
+//    }
+//    fn handle_v4(ip_packet: Ipv4Packet, network_interface: &NetworkInterface, ethernet_frame_length: &usize) -> Option<Segment> {
+//        let (protocol, source_port, destination_port, data_length) =
+//            extract_transport_protocol!(ip_packet);
+//
+//        let data_length = *ethernet_frame_length as u128;
+//
+//        let interface_name = network_interface.name.clone();
+//        let direction = Direction::new(&network_interface.ips, ip_packet.get_source().into());
+//        let from = SocketAddr::new(ip_packet.get_source().into(), source_port);
+//        let to = SocketAddr::new(ip_packet.get_destination().into(), destination_port);
+//
+//        let connection = match direction {
+//            Direction::Download => Connection::new(from, to.ip(), destination_port, protocol),
+//            Direction::Upload => Connection::new(to, from.ip(), source_port, protocol),
+//        };
+//        Some(Segment {
+//            interface_name,
+//            connection,
+//            data_length,
+//            direction,
+//        })
+//    }
 }

@@ -9,7 +9,7 @@ mod tests;
 use display::{RawTerminalBackend, DisplayBandwidth, Ui};
 use network::{
     dns::{self, IpTable},
-    Connection, LocalSocket, Sniffer, Utilization, Direction
+    Connection, LocalSocket, Sniffer, Direction
 };
 use os::OnSigWinch;
 
@@ -127,7 +127,7 @@ where
 //
 //    let raw_mode = opts.raw;
 //
-    let network_utilization = Arc::new(Mutex::new(Utilization::new()));
+    // let network_utilization = Arc::new(Mutex::new(Utilization::new()));
 //    let ui = Arc::new(Mutex::new(Ui::new(terminal_backend, opts.render_opts)));
 //
 //    if !raw_mode {
@@ -236,7 +236,7 @@ where
             let name = format!("sniffing_handler_{}", iface.name);
             let debug_name = iface.name.clone();
             let running = running.clone();
-            let network_utilization = network_utilization.clone();
+            // let network_utilization = network_utilization.clone();
 
             thread::Builder::new()
                 .name(name)
@@ -249,10 +249,11 @@ where
 
                     while running.load(Ordering::Acquire) {
                         if let Some(segment) = sniffer.next() {
-                            match segment.direction {
-                                Direction::Download => download = download + segment.data_length,
-                                Direction::Upload => upload += segment.data_length,
-                            }
+                            download += segment.data_length;
+//                            match segment.direction {
+//                                Direction::Download => download = download + segment.data_length,
+//                                Direction::Upload => upload += segment.data_length,
+//                            }
                         }
                     }
                     let duration = start_time.elapsed();

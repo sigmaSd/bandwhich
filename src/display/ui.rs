@@ -5,7 +5,7 @@ use ::tui::Terminal;
 
 use crate::display::components::{HelpText, Layout, Table, TotalBandwidth};
 use crate::display::UIState;
-use crate::network::{display_connection_string, display_ip_or_host, LocalSocket, Utilization};
+use crate::network::{display_connection_string, display_ip_or_host, LocalSocket};
 
 use ::std::net::IpAddr;
 
@@ -125,15 +125,15 @@ where
         }
         children
     }
-    pub fn update_state(
-        &mut self,
-        connections_to_procs: HashMap<LocalSocket, String>,
-        utilization: Utilization,
-        ip_to_host: HashMap<IpAddr, String>,
-    ) {
-        self.state.update(connections_to_procs, utilization);
-        self.ip_to_host.extend(ip_to_host);
-    }
+//    pub fn update_state(
+//        &mut self,
+//        connections_to_procs: HashMap<LocalSocket, String>,
+//        utilization: Utilization,
+//        ip_to_host: HashMap<IpAddr, String>,
+//    ) {
+//        self.state.update(connections_to_procs, utilization);
+//        self.ip_to_host.extend(ip_to_host);
+//    }
     pub fn end(&mut self) {
         self.terminal.clear().unwrap();
         self.terminal.show_cursor().unwrap();
