@@ -6,10 +6,10 @@ mod os;
 #[cfg(test)]
 mod tests;
 
-use display::{RawTerminalBackend, Ui};
+use display::{RawTerminalBackend, DisplayBandwidth, Ui};
 use network::{
     dns::{self, IpTable},
-    Connection, LocalSocket, Sniffer, Utilization,
+    Connection, LocalSocket, Sniffer, Utilization, Direction
 };
 use os::OnSigWinch;
 
@@ -119,105 +119,105 @@ where
     let mut active_threads = vec![];
 
     let keyboard_events = os_input.keyboard_events;
-    let get_open_sockets = os_input.get_open_sockets;
-    let mut write_to_stdout = os_input.write_to_stdout;
-    let mut dns_client = os_input.dns_client;
-    let on_winch = os_input.on_winch;
+//    let get_open_sockets = os_input.get_open_sockets;
+//    let mut write_to_stdout = os_input.write_to_stdout;
+//    let mut dns_client = os_input.dns_client;
+//    let on_winch = os_input.on_winch;
     let cleanup = os_input.cleanup;
-
-    let raw_mode = opts.raw;
-
+//
+//    let raw_mode = opts.raw;
+//
     let network_utilization = Arc::new(Mutex::new(Utilization::new()));
-    let ui = Arc::new(Mutex::new(Ui::new(terminal_backend, opts.render_opts)));
-
-    if !raw_mode {
-        active_threads.push(
-            thread::Builder::new()
-                .name("resize_handler".to_string())
-                .spawn({
-                    let ui = ui.clone();
-                    let paused = paused.clone();
-                    move || {
-                        on_winch({
-                            Box::new(move || {
-                                let mut ui = ui.lock().unwrap();
-                                ui.draw(paused.load(Ordering::SeqCst));
-                            })
-                        });
-                    }
-                })
-                .unwrap(),
-        );
-    }
-
-    let display_handler = thread::Builder::new()
-        .name("display_handler".to_string())
-        .spawn({
-            let running = running.clone();
-            let paused = paused.clone();
-            let network_utilization = network_utilization.clone();
-            move || {
-                while running.load(Ordering::Acquire) {
-                    let render_start_time = Instant::now();
-                    let utilization = { network_utilization.lock().unwrap().clone_and_reset() };
-                    let OpenSockets {
-                        sockets_to_procs,
-                        connections,
-                    } = get_open_sockets();
-                    let mut ip_to_host = IpTable::new();
-                    if let Some(dns_client) = dns_client.as_mut() {
-                        ip_to_host = dns_client.cache();
-                        let unresolved_ips = connections
-                            .iter()
-                            .filter(|conn| !ip_to_host.contains_key(&conn.remote_socket.ip))
-                            .map(|conn| conn.remote_socket.ip)
-                            .collect::<Vec<_>>();
-
-                        dns_client.resolve(unresolved_ips);
-                    }
-                    {
-                        let mut ui = ui.lock().unwrap();
-                        let paused = paused.load(Ordering::SeqCst);
-                        if !paused {
-                            ui.update_state(sockets_to_procs, utilization, ip_to_host);
-                        }
-                        if raw_mode {
-                            ui.output_text(&mut write_to_stdout);
-                        } else {
-                            ui.draw(paused);
-                        }
-                    }
-                    let render_duration = render_start_time.elapsed();
-                    if render_duration < DISPLAY_DELTA {
-                        park_timeout(DISPLAY_DELTA - render_duration);
-                    }
-                }
-                if !raw_mode {
-                    let mut ui = ui.lock().unwrap();
-                    ui.end();
-                }
-            }
-        })
-        .unwrap();
-
+//    let ui = Arc::new(Mutex::new(Ui::new(terminal_backend, opts.render_opts)));
+//
+//    if !raw_mode {
+//        active_threads.push(
+//            thread::Builder::new()
+//                .name("resize_handler".to_string())
+//                .spawn({
+//                    let ui = ui.clone();
+//                    let paused = paused.clone();
+//                    move || {
+//                        on_winch({
+//                            Box::new(move || {
+//                                let mut ui = ui.lock().unwrap();
+//                                ui.draw(paused.load(Ordering::SeqCst));
+//                            })
+//                        });
+//                    }
+//                })
+//                .unwrap(),
+//        );
+//    }
+//
+//    let display_handler = thread::Builder::new()
+//        .name("display_handler".to_string())
+//        .spawn({
+//            let running = running.clone();
+//            let paused = paused.clone();
+//            let network_utilization = network_utilization.clone();
+//            move || {
+//                while running.load(Ordering::Acquire) {
+//                    let render_start_time = Instant::now();
+//                    let utilization = { network_utilization.lock().unwrap().clone_and_reset() };
+//                    let OpenSockets {
+//                        sockets_to_procs,
+//                        connections,
+//                    } = get_open_sockets();
+//                    let mut ip_to_host = IpTable::new();
+//                    if let Some(dns_client) = dns_client.as_mut() {
+//                        ip_to_host = dns_client.cache();
+//                        let unresolved_ips = connections
+//                            .iter()
+//                            .filter(|conn| !ip_to_host.contains_key(&conn.remote_socket.ip))
+//                            .map(|conn| conn.remote_socket.ip)
+//                            .collect::<Vec<_>>();
+//
+//                        dns_client.resolve(unresolved_ips);
+//                    }
+//                    {
+//                        let mut ui = ui.lock().unwrap();
+//                        let paused = paused.load(Ordering::SeqCst);
+//                        if !paused {
+//                            ui.update_state(sockets_to_procs, utilization, ip_to_host);
+//                        }
+//                        if raw_mode {
+//                            ui.output_text(&mut write_to_stdout);
+//                        } else {
+//                            ui.draw(paused);
+//                        }
+//                    }
+//                    let render_duration = render_start_time.elapsed();
+//                    if render_duration < DISPLAY_DELTA {
+//                        park_timeout(DISPLAY_DELTA - render_duration);
+//                    }
+//                }
+//                if !raw_mode {
+//                    let mut ui = ui.lock().unwrap();
+//                    ui.end();
+//                }
+//            }
+//        })
+//        .unwrap();
+//
     active_threads.push(
         thread::Builder::new()
             .name("stdin_handler".to_string())
             .spawn({
                 let running = running.clone();
-                let display_handler = display_handler.thread().clone();
+                // let display_handler = display_handler.thread().clone();
                 move || {
                     for evt in keyboard_events {
                         match evt {
                             Event::Key(Key::Ctrl('c')) | Event::Key(Key::Char('q')) => {
                                 running.store(false, Ordering::Release);
                                 cleanup();
-                                display_handler.unpark();
+                                // display_handler.unpark();
                                 break;
                             }
                             Event::Key(Key::Char(' ')) => {
                                 paused.fetch_xor(true, Ordering::SeqCst);
-                                display_handler.unpark();
+                                // display_handler.unpark();
                             }
                             _ => (),
                         };
@@ -226,7 +226,7 @@ where
             })
             .unwrap(),
     );
-    active_threads.push(display_handler);
+    // active_threads.push(display_handler);
 
     let sniffer_threads = os_input
         .network_interfaces
@@ -234,6 +234,7 @@ where
         .zip(os_input.network_frames.into_iter())
         .map(|(iface, frames)| {
             let name = format!("sniffing_handler_{}", iface.name);
+            let debug_name = iface.name.clone();
             let running = running.clone();
             let network_utilization = network_utilization.clone();
 
@@ -242,11 +243,23 @@ where
                 .spawn(move || {
                     let mut sniffer = Sniffer::new(iface, frames);
 
+                    let start_time = Instant::now();
+                    let mut download: u128 = 0;
+                    let mut upload: u128 = 0;
+
                     while running.load(Ordering::Acquire) {
                         if let Some(segment) = sniffer.next() {
-                            network_utilization.lock().unwrap().update(segment);
+                            match segment.direction {
+                                Direction::Download => download = download + segment.data_length,
+                                Direction::Upload => upload += segment.data_length,
+                            }
                         }
                     }
+                    let duration = start_time.elapsed();
+                    println!("\r{} total downloaded {} bytes", debug_name, download);
+                    println!("\r{} total uploaded {} bytes", debug_name, upload);
+                    println!("\r{}: average download per second {}", debug_name, DisplayBandwidth((download / duration.as_secs() as u128) as f64));
+                    println!("\r{}: average upload per second {}", debug_name, DisplayBandwidth((upload / duration.as_secs() as u128) as f64));
                 })
                 .unwrap()
         })
