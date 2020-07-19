@@ -11,7 +11,7 @@ use ::std::time;
 use crate::os::errors::GetInterfaceErrorKind;
 use signal_hook::iterator::Signals;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 use crate::os::linux::get_open_sockets;
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]
 use crate::os::lsof::get_open_sockets;
@@ -245,7 +245,7 @@ fn eperm_message() -> &'static str {
 }
 
 #[inline]
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 fn eperm_message() -> &'static str {
     r#"
     Insufficient permissions to listen on network interface(s). You can work around
