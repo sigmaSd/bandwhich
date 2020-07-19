@@ -19,7 +19,7 @@ license = "MIT"
 exclude = ["src/tests/*", "demo.gif"]
 
 [dependencies]
-pnet = "0.26.0"
+pnet = {path = "./pnet"}
 ipnetwork = "0.16.0"
 tui = "0.5"
 termion = "1.5"
