@@ -19,7 +19,7 @@ license = "MIT"
 exclude = ["src/tests/*", "demo.gif"]
 
 [dependencies]
-pnet = {path = "./pnet"}
+pnet = "*"
 ipnetwork = "0.16.0"
 tui = "0.5"
 termion = "1.5"
@@ -34,7 +34,7 @@ trust-dns-resolver = "0.18.1"
 async-trait = "0.1.21"
 
 [target.'cfg(any(target_os="linux", target_os = "android"))'.dependencies]
-procfs = {path = "./procfs"}
+procfs = {git = "https://github.com/sigmaSd/procfs"}
 
 [dev-dependencies]
 insta = "0.12.0"
