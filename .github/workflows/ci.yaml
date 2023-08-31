@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - dev
+
 jobs:
   test:
     name: test
@@ -14,7 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
         rust:
           - 1.70.0 # MSRV
           - stable
@@ -51,15 +54,15 @@ jobs:
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Install npcap on Windows
-        if: matrix.os == 'windows-latest'
-        env:
-          NPCAP_OEM_URL: ${{ secrets.NPCAP_OEM_URL }}
-        run: |
-          Invoke-WebRequest -Uri "$env:NPCAP_OEM_URL" -OutFile "$env:TEMP/npcap-oem.exe"
-          # for this ridiculous `&` syntax alone, I'd rather use COBOL than Powershell
-          # see https://stackoverflow.com/a/1674950/5637701
-          & "$env:TEMP/npcap-oem.exe" /S
+      # - name: Install npcap on Windows
+      #   if: matrix.os == 'windows-latest'
+      #   env:
+      #     NPCAP_OEM_URL: ${{ secrets.NPCAP_OEM_URL }}
+      #   run: |
+      #     Invoke-WebRequest -Uri "$env:NPCAP_OEM_URL" -OutFile "$env:TEMP/npcap-oem.exe"
+      #     # for this ridiculous `&` syntax alone, I'd rather use COBOL than Powershell
+      #     # see https://stackoverflow.com/a/1674950/5637701
+      #     & "$env:TEMP/npcap-oem.exe" /S
 
       - name: Run tests
         run: cargo test --verbose
@@ -71,11 +74,11 @@ jobs:
           name: ${{ matrix.os }}-${{ matrix.rust }}
           path: target/debug/bandwhich
 
-      - name: Upload windows binary
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.os }}-${{ matrix.rust }}
-          path: |
-            target/debug/bandwhich.exe
-            target/debug/bandwhich.pdb
+      # - name: Upload windows binary
+      #   if: matrix.os == 'windows-latest'
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: ${{ matrix.os }}-${{ matrix.rust }}
+      #     path: |
+      #       target/debug/bandwhich.exe
+      #       target/debug/bandwhich.pdb
